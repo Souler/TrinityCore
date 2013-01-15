@@ -7948,6 +7948,23 @@ bool Unit::HandleProcTriggerSpell(Unit* victim, uint32 damage, AuraEffect* trigg
                 return false;
             break;
         }
+        case 79684: // Offensive State (Used to proc Arcane Missiles)
+        {
+            // Check if we have any of the talents that overide the effect of procing Arcane Missiles
+            if (GetTypeId() == TYPEID_PLAYER)
+            {
+                if (ToPlayer()->HasAura(44445) || // Hot Streak
+                    ToPlayer()->HasAura(44546) || // Brain Freeze (Rank 1)
+                    ToPlayer()->HasAura(44548) || // Brain Freeze (Rank 2)
+                    ToPlayer()->HasAura(44549))   // Brain Freeze (Rank 3)
+                    return false;
+            }
+
+            if (!roll_chance_i(auraSpellInfo->Effects[EFFECT_0].BasePoints))
+                return false;
+
+            break;
+        }
         default:
             break;
     }
