@@ -64,7 +64,13 @@ enum MageSpells
     SPELL_MAGE_SUMMON_WATER_ELEMENTAL_PERMANENT  = 70908,
     SPELL_MAGE_SUMMON_WATER_ELEMENTAL_TEMPORARY  = 70907,
 
-    SPELL_MAGE_FINGERS_OF_FROST                  = 44544
+    SPELL_MAGE_FINGERS_OF_FROST                  = 44544,
+
+    SPELL_MAGE_IMPROVED_POLIMORH_R1              = 11210,
+    SPELL_MAGE_IMPROVED_POLIMORH_R2              = 12592,
+    SPELL_MAGE_IMPROVED_POLIMORH_STUN_R1         = 83046,
+    SPELL_MAGE_IMPROVED_POLIMORH_STUN_R2         = 83047,
+    SPELL_MAGE_IMPROVED_POLIMORH_MARKER          = 87515,
 };
 
 enum MageIcons
@@ -744,6 +750,69 @@ class spell_mage_water_elemental_freeze : public SpellScriptLoader
        }
 };
 
+// 118 -Polymorph
+/// Updated 4.3.4
+class spell_mage_polymorph : public SpellScriptLoader
+{
+   public:
+       spell_mage_polymorph() : SpellScriptLoader("spell_mage_polymorph") { }
+
+       class spell_mage_polymorph_AuraScript : public AuraScript
+       {
+           PrepareAuraScript(spell_mage_polymorph_AuraScript);
+
+            bool Validate(SpellInfo const* /*spellEntry*/)
+            {
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_IMPROVED_POLIMORH_MARKER))
+                    return false;
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_IMPROVED_POLIMORH_R1))
+                    return false;
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_IMPROVED_POLIMORH_R2))
+                    return false;
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_IMPROVED_POLIMORH_STUN_R1))
+                    return false;
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_IMPROVED_POLIMORH_STUN_R2))
+                    return false;
+                return true;
+            }
+
+           void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+           {
+               if (GetTargetApplication()->GetRemoveMode() != AURA_REMOVE_BY_EXPIRE)
+               {
+                   uint32 spellId = 0;
+
+                   if (!GetTarget()->HasAura(SPELL_MAGE_IMPROVED_POLIMORH_MARKER))
+                   {
+                       if (Unit* caster = GetCaster())
+                       {
+                           if (caster->HasAura(SPELL_MAGE_IMPROVED_POLIMORH_R2))
+                               spellId = SPELL_MAGE_IMPROVED_POLIMORH_STUN_R2;
+                           else if (caster->HasAura(SPELL_MAGE_IMPROVED_POLIMORH_R1))
+                               spellId = SPELL_MAGE_IMPROVED_POLIMORH_STUN_R1;
+                       }
+                   }
+
+                   if (spellId)
+                   {
+                       GetTarget()->CastSpell(GetTarget(), spellId, true);
+                       GetTarget()->CastSpell(GetTarget(), SPELL_MAGE_IMPROVED_POLIMORH_MARKER, true);
+                   }
+               }
+           }
+
+           void Register()
+           {
+                AfterEffectRemove += AuraEffectRemoveFn(spell_mage_polymorph_AuraScript::AfterRemove, EFFECT_0, SPELL_AURA_MOD_CONFUSE, AURA_EFFECT_HANDLE_REAL);
+           }
+       };
+
+       AuraScript* GetAuraScript() const
+       {
+           return new spell_mage_polymorph_AuraScript();
+       }
+};
+
 void AddSC_mage_spell_scripts()
 {
     new spell_mage_blast_wave();
@@ -761,4 +830,5 @@ void AddSC_mage_spell_scripts()
     new spell_mage_replenish_mana();
     new spell_mage_summon_water_elemental();
     new spell_mage_water_elemental_freeze();
+    new spell_mage_polymorph();
 }
