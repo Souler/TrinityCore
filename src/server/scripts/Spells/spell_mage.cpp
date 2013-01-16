@@ -71,6 +71,8 @@ enum MageSpells
     SPELL_MAGE_IMPROVED_POLIMORH_STUN_R1         = 83046,
     SPELL_MAGE_IMPROVED_POLIMORH_STUN_R2         = 83047,
     SPELL_MAGE_IMPROVED_POLIMORH_MARKER          = 87515,
+
+    SPELL_MAGE_SLOW                              = 31589,
 };
 
 enum MageIcons
@@ -813,6 +815,55 @@ class spell_mage_polymorph : public SpellScriptLoader
        }
 };
 
+// 30451 - Arcane Blast
+/// Updated 4.3.4
+class spell_mage_arcane_blast : public SpellScriptLoader
+{
+   public:
+       spell_mage_arcane_blast() : SpellScriptLoader("spell_mage_arcane_blast") { }
+
+       class spell_mage_arcane_blast_SpellScript : public SpellScript
+       {
+           PrepareSpellScript(spell_mage_arcane_blast_SpellScript);
+
+           bool Validate(SpellInfo const* /*spellInfo*/)
+           {
+               if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_SLOW))
+                   return false;
+               return true;
+           }
+
+           void CastSlow(SpellEffIndex /*effIndex*/)
+           {
+               Unit* caster = GetCaster();
+               Unit::AuraList& auras = caster->GetSingleCastAuras();
+               bool alreadyCasted = false;
+
+               for (Unit::AuraList::iterator itr = auras.begin(); itr != auras.end(); ++itr)
+               {
+                   if ((*itr)->GetId() == SPELL_MAGE_SLOW)
+                   {
+                       alreadyCasted = true;
+                       break;
+                   }
+               }
+
+               if (!alreadyCasted && GetHitUnit())
+                   caster->CastSpell(GetHitUnit(), SPELL_MAGE_SLOW, true);
+           }
+
+           void Register()
+           {
+               OnEffectHitTarget += SpellEffectFn(spell_mage_arcane_blast_SpellScript::CastSlow, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+           }
+       };
+
+       SpellScript* GetSpellScript() const
+       {
+           return new spell_mage_arcane_blast_SpellScript();
+       }
+};
+
 void AddSC_mage_spell_scripts()
 {
     new spell_mage_blast_wave();
@@ -831,4 +882,5 @@ void AddSC_mage_spell_scripts()
     new spell_mage_summon_water_elemental();
     new spell_mage_water_elemental_freeze();
     new spell_mage_polymorph();
+    new spell_mage_arcane_blast();
 }
