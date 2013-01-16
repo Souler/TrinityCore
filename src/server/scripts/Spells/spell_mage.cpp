@@ -65,6 +65,7 @@ enum MageSpells
     SPELL_MAGE_SUMMON_WATER_ELEMENTAL_TEMPORARY  = 70907,
 
     SPELL_MAGE_FINGERS_OF_FROST                  = 44544,
+    SPELL_MAGE_COMBUSTION_PERIODIC_DAMAGE        = 83853,
 
     SPELL_MAGE_IMPROVED_POLIMORH_R1              = 11210,
     SPELL_MAGE_IMPROVED_POLIMORH_R2              = 12592,
@@ -752,6 +753,52 @@ class spell_mage_water_elemental_freeze : public SpellScriptLoader
        }
 };
 
+// 11129 Combustion
+/// Updated 4.3.4
+class spell_mage_combustion : public SpellScriptLoader
+{
+    public:
+        spell_mage_combustion() : SpellScriptLoader("spell_mage_combustion") { }
+
+        class spell_mage_combustion_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_mage_combustion_SpellScript);
+
+            bool Validate(SpellInfo const* /*spellEntry*/)
+            {
+                if (!sSpellMgr->GetSpellInfo(SPELL_MAGE_COMBUSTION_PERIODIC_DAMAGE))
+                    return false;
+                return true;
+            }
+
+            void HandleDummy(SpellEffIndex /*effIndex*/)
+            {
+                if (Unit* target = GetHitUnit())
+                {
+                    int32 basePoints0 = 0;
+                    Unit::AuraEffectList const& targetAuras = target->GetAuraEffectsByType(SPELL_AURA_PERIODIC_DAMAGE);
+
+                    for (Unit::AuraEffectList::const_iterator i = targetAuras.begin(); i != targetAuras.end(); ++i)
+                        if ((*i)->GetCaster() == GetCaster() && (*i)->GetSpellInfo()->SchoolMask == SPELL_SCHOOL_MASK_FIRE)
+                            basePoints0 += (*i)->GetAmount();
+
+                    if (basePoints0)
+                        GetCaster()->CastCustomSpell(target, SPELL_MAGE_COMBUSTION_PERIODIC_DAMAGE, &basePoints0, NULL, NULL, true);
+                }
+            }
+
+            void Register()
+            {
+                OnEffectHitTarget += SpellEffectFn(spell_mage_combustion_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+            }
+        };
+
+        SpellScript* GetSpellScript() const
+        {
+            return new spell_mage_combustion_SpellScript();
+        }
+};
+
 // 118 -Polymorph
 /// Updated 4.3.4
 class spell_mage_polymorph : public SpellScriptLoader
@@ -881,6 +928,7 @@ void AddSC_mage_spell_scripts()
     new spell_mage_replenish_mana();
     new spell_mage_summon_water_elemental();
     new spell_mage_water_elemental_freeze();
+    new spell_mage_combustion();
     new spell_mage_polymorph();
     new spell_mage_arcane_blast();
 }
